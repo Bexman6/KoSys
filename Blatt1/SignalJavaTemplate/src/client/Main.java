@@ -1,0 +1,319 @@
+package client;
+
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
+import java.util.Arrays;
+import java.util.Scanner;
+
+import org.bouncycastle.crypto.AsymmetricCipherKeyPair;
+import org.bouncycastle.crypto.CipherParameters;
+import org.bouncycastle.crypto.InvalidCipherTextException;
+import org.bouncycastle.crypto.KeyGenerationParameters;
+import org.bouncycastle.crypto.agreement.X25519Agreement;
+import org.bouncycastle.crypto.digests.SHA256Digest;
+import org.bouncycastle.crypto.engines.AESEngine;
+import org.bouncycastle.crypto.generators.HKDFBytesGenerator;
+import org.bouncycastle.crypto.generators.X25519KeyPairGenerator;
+import org.bouncycastle.crypto.modes.GCMBlockCipher;
+import org.bouncycastle.crypto.params.AEADParameters;
+import org.bouncycastle.crypto.params.HKDFParameters;
+import org.bouncycastle.crypto.params.KeyParameter;
+import org.bouncycastle.crypto.params.X25519PrivateKeyParameters;
+import org.bouncycastle.crypto.params.X25519PublicKeyParameters;
+import org.bouncycastle.math.ec.rfc7748.X25519;
+
+import com.google.common.primitives.Bytes;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.http.client.ClientProtocolException;
+
+import apimodels.AuthRequest;
+import apimodels.AuthResponse;
+import apimodels.DebugRequest;
+import apimodels.DebugResponse;
+import apimodels.InitialMessageRequest;
+import apimodels.MessageRequest;
+import apimodels.MessageResponse;
+import crypto.DhRatchet;
+import crypto.RootRatchet;
+import crypto.SendReceiveRatchet;
+import org.bouncycastle.x509.NoSuchStoreException;
+
+public class Main {
+
+	private static SecureRandom random;
+
+	private static AsymmetricCipherKeyPair identityKey;
+	private static X25519PublicKeyParameters bobIdentityKey;
+
+	private static DhRatchet dhRatchet;
+	private static RootRatchet rootRatchet;
+	private static SendReceiveRatchet sendRatchet;
+	private static SendReceiveRatchet receiveRatchet;
+
+	public static void main(String[] args) throws IllegalStateException, InvalidCipherTextException, ClientProtocolException, IOException {
+
+		// Initialize key generator
+		random = new SecureRandom();
+		X25519KeyPairGenerator keygen = new X25519KeyPairGenerator();
+		keygen.init(new KeyGenerationParameters(random, 1));
+
+		// Initialize own keys
+		identityKey = keygen.generateKeyPair();
+
+		// Initialize API accessor
+		ApiAccessor api = new ApiAccessor();
+
+		// Authenticate
+		System.out.println("Enter name: ");
+		Scanner scanner = new Scanner(System.in);
+		String name = scanner.nextLine();
+
+		// Create authentication request
+		AuthRequest authRequest = new AuthRequest();
+
+		/*****************************
+		 * TODO: complete AuthRequest
+		 *****************************/
+
+		// Sets the name for the request
+		authRequest.setName(name);
+
+		// Get authentication response
+		AuthResponse authResponse = api.authenticate(name);
+		System.out.println(String.format("Successfully authenticated. Token: %1$s", authResponse.getAuthenticationData().getAuthenticationToken()));
+
+
+		bobIdentityKey = new X25519PublicKeyParameters(authResponse.getBobIdentityKey(), 0);
+		X25519PublicKeyParameters bobPreKey = new X25519PublicKeyParameters(authResponse.getBobPreKey(), 0);
+		X25519PublicKeyParameters bobOneTimePreKey = new X25519PublicKeyParameters(authResponse.getBobOneTimePreKey(), 0);
+
+
+		// Compute X3DH
+		AsymmetricCipherKeyPair ephemeralKey = keygen.generateKeyPair();
+		byte[] x3dhKeys = new byte[4 * X25519.POINT_SIZE];
+		X25519Agreement agreementAlgorithm = new X25519Agreement();
+
+		/**********************************
+		 * TODO: complete X3DH computation
+		 **********************************/
+
+		// DH1
+		agreementAlgorithm.init(identityKey.getPrivate());
+		agreementAlgorithm.calculateAgreement(bobPreKey,x3dhKeys,0);
+
+		// DH2
+		agreementAlgorithm.init(ephemeralKey.getPrivate());
+		agreementAlgorithm.calculateAgreement(bobIdentityKey,x3dhKeys,X25519.POINT_SIZE);
+
+		// DH3
+		agreementAlgorithm.init(ephemeralKey.getPrivate());
+		agreementAlgorithm.calculateAgreement(bobPreKey,x3dhKeys,2*X25519.POINT_SIZE);
+
+		// DH4
+		agreementAlgorithm.init(ephemeralKey.getPrivate());
+		agreementAlgorithm.calculateAgreement(bobOneTimePreKey,x3dhKeys,3*X25519.POINT_SIZE);
+
+		// Compute session key for initializing root ratchet
+		HKDFBytesGenerator hkdf = new HKDFBytesGenerator(new SHA256Digest());
+		hkdf.init(new HKDFParameters(x3dhKeys, new byte[0], new byte[0]));
+		byte[] sk = new byte[32];
+		hkdf.generateBytes(sk, 0, sk.length);
+		rootRatchet = new RootRatchet(sk);
+
+		// Initialize DH ratchet
+		AsymmetricCipherKeyPair dhKey = keygen.generateKeyPair();
+		dhRatchet = new DhRatchet();
+
+		/*******************************************
+		 * TODO: complete DH ratchet initialization
+		 *******************************************/
+
+		dhRatchet.localPrivateKey = (X25519PrivateKeyParameters) dhKey.getPrivate();
+
+		dhRatchet.remotePublicKey = bobPreKey;
+
+		// Initialize send ratchet
+		sendRatchet = new SendReceiveRatchet(rootRatchet.step(dhRatchet.getSharedSecret()));
+
+		// Prepare first message
+		System.out.println("Enter first message: ");
+		String firstMessage = scanner.nextLine();
+		byte[] firstMessageEncrypted = encryptMessage(firstMessage);
+
+		// Send first message
+		InitialMessageRequest firstMessageRequest = new InitialMessageRequest();
+
+		/***************************************
+		 * TODO: complete first message request
+		 ***************************************/
+
+		// All the parameters for the first request have to be set
+
+		firstMessageRequest.setAuthHeader(authResponse.getAuthenticationData());
+
+		firstMessageRequest.setAliceIdentityKey(((X25519PublicKeyParameters) identityKey.getPublic()).getEncoded());
+
+		firstMessageRequest.setAliceEphemeralKey(((X25519PublicKeyParameters) ephemeralKey.getPublic()).getEncoded());
+
+		firstMessageRequest.setNewRatchetPublicKey(((X25519PublicKeyParameters) dhKey.getPublic()).getEncoded());
+
+		//int[] newArray = Arrays.copyOfRange(oldArray, startIndex, endIndex);
+
+		firstMessageRequest.setFirstMessageNonce(Arrays.copyOfRange(firstMessageEncrypted, 0, 12));
+
+		firstMessageRequest.setFirstMessageEncrypted(Arrays.copyOfRange(firstMessageEncrypted, 12, firstMessageEncrypted.length));
+
+		// Get first message response
+		MessageResponse firstMessageResponse = api.firstMessage(firstMessageRequest);
+		boolean allowUpdateDhKey = handleMessageResponse(firstMessageResponse);
+
+		// Message loop
+		while (true) {
+
+			// Prompt
+			System.out.println("Enter message (or leave empty to exit): ");
+			String message = scanner.nextLine();
+			if (StringUtils.isBlank(message)) {
+				break;
+			}
+
+			// Can we generate a new DH key?
+			boolean dhKeyChanged = false;
+			if (allowUpdateDhKey) {
+
+				// Should we do it?
+				System.out.println("Change DH key (1: yes)? ");
+				String change = scanner.nextLine();
+				dhKeyChanged = StringUtils.equals(change, "1");
+
+				if (dhKeyChanged) {
+
+					/*******************************************************
+					 * TODO: Generate and set new private key for DH ratchet
+					 ********************************************************/
+					// Initialize DH ratchet
+					AsymmetricCipherKeyPair newDhKey = keygen.generateKeyPair();
+
+					dhRatchet.localPrivateKey = (X25519PrivateKeyParameters) newDhKey.getPrivate();
+
+
+					/***********************************
+					 * TODO: Initialize new send ratchet
+					 ************************************/
+					sendRatchet = new SendReceiveRatchet(rootRatchet.step(dhRatchet.getSharedSecret()));
+
+
+					// Toggle flag
+					allowUpdateDhKey = false;
+				}
+			}
+
+
+
+			// Insert debug stuff if needed
+			DebugRequest debugRequest = new DebugRequest();
+			/**********************************************************
+			 * TODO (optional): DEBUG AREA: insert parameters if needed
+			 ***********************************************************/
+
+
+
+			//System.out.println(debugRequest.toString());
+			//DebugResponse debugResponse = api.message(debugRequest);
+			//System.out.println(debugResponse.toString());
+
+
+
+
+			// Encrypt message
+			byte[] messageEncrypted = encryptMessage(message);
+
+			// Send message
+			MessageRequest messageRequest = new MessageRequest();
+
+			/********************************
+			 * TODO: complete message request
+			 ********************************/
+
+			messageRequest.setAuthHeader(authResponse.getAuthenticationData());
+
+			// New Public DH Ratchet Key from Alice will be added to the message request
+			messageRequest.setNewRatchetPublicKey(dhKeyChanged ? dhRatchet.localPrivateKey.generatePublicKey().getEncoded():null);
+
+			messageRequest.setMessageNonce(Arrays.copyOfRange(messageEncrypted, 0, 12));
+
+			messageRequest.setMessageEncrypted(Arrays.copyOfRange(messageEncrypted, 12, messageEncrypted.length));
+
+			// Get message response
+			MessageResponse messageResponse = api.message(messageRequest);
+			allowUpdateDhKey = handleMessageResponse(messageResponse) || allowUpdateDhKey;
+		}
+
+		scanner.close();
+
+	}
+
+	private static byte[] encryptMessage(String message) throws IllegalStateException, InvalidCipherTextException {
+
+		// Encode message
+		byte[] messageBytes = message.getBytes(StandardCharsets.UTF_8);
+
+		// Compose associated data for encryption
+		byte[] encryptAd = new byte[3 * X25519.POINT_SIZE];
+		((X25519PublicKeyParameters) identityKey.getPublic()).encode(encryptAd, 0);
+		bobIdentityKey.encode(encryptAd, X25519.POINT_SIZE);
+		dhRatchet.localPrivateKey.generatePublicKey().encode(encryptAd, 2 * X25519.POINT_SIZE);
+
+		// Encrypt message
+		byte[] encryptKey = sendRatchet.step();
+		byte[] nonce = new byte[12];
+		random.nextBytes(nonce);
+		GCMBlockCipher aesGcm = new GCMBlockCipher(new AESEngine());
+		aesGcm.init(true, new AEADParameters(new KeyParameter(encryptKey), 128, nonce));
+		aesGcm.processAADBytes(encryptAd, 0, encryptAd.length);
+		byte[] cipherBytes = new byte[aesGcm.getOutputSize(messageBytes.length)];
+		int encTmpLen = aesGcm.processBytes(messageBytes, 0, messageBytes.length, cipherBytes, 0);
+		aesGcm.doFinal(cipherBytes, encTmpLen);
+
+		byte[] result = Bytes.concat(nonce, cipherBytes);
+
+		return result;
+	}
+
+	private static boolean handleMessageResponse(MessageResponse response)
+			throws IllegalStateException, InvalidCipherTextException, UnsupportedEncodingException {
+
+		// Update remote DH public key, if desired
+		if (response.getNewRatchetPublicKey() != null) {
+			// Update ratchet
+			dhRatchet.remotePublicKey = new X25519PublicKeyParameters(response.getNewRatchetPublicKey(), 0);
+
+			// Create new receive ratchet
+			receiveRatchet = new SendReceiveRatchet(rootRatchet.step(dhRatchet.getSharedSecret()));
+		}
+
+		// Compose associated data for encryption
+		byte[] decryptAd = new byte[3 * X25519.POINT_SIZE];
+		((X25519PublicKeyParameters) identityKey.getPublic()).encode(decryptAd, 0);
+		bobIdentityKey.encode(decryptAd, X25519.POINT_SIZE);
+		dhRatchet.remotePublicKey.encode(decryptAd, 2 * X25519.POINT_SIZE);
+
+		// Decrypt first cipher text
+		byte[] decryptKey = receiveRatchet.step();
+		GCMBlockCipher aesGcm = new GCMBlockCipher(new AESEngine());
+		aesGcm.init(false, new AEADParameters(new KeyParameter(decryptKey), 128, response.getMessageNonce()));
+		aesGcm.processAADBytes(decryptAd, 0, decryptAd.length);
+		byte[] responseBytes = response.getMessageEncrypted();
+		byte[] plainBytes = new byte[aesGcm.getOutputSize(responseBytes.length)];
+		int decTmpLen = aesGcm.processBytes(responseBytes, 0, responseBytes.length, plainBytes, 0);
+		aesGcm.doFinal(plainBytes, decTmpLen);
+
+		System.out.println("Message from Bob: \n\n" + StringUtils.toEncodedString(plainBytes, StandardCharsets.UTF_8));
+
+		// Indicate whether Bob's key has changed
+		return response.getNewRatchetPublicKey() != null;
+	}
+
+}
