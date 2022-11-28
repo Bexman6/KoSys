@@ -11,17 +11,15 @@ def compute_d(curve, r1, s1, h1, r2, s2, h2, hashfunc):
     order = curve.order
 
     """ TODO: compute the secret exponent d that can then be verified using the code below """
-    print(type(curve))
 
-    # We calculate the ephemeral key first
-    k = ((h1 - h2)/s1 - s2) % order
+    # We calculate the inverse of the ephemeral key first
+    k_inv = (s1 - s2)*(pow(h1 - h2, -1 ,order))
+    
+    # Then we calculate the real value of k
+    k = pow(k_inv,-1,curve.order)
 
-    # In the second step we calculate d
-    temp = s1 * ((h1-h2)/(s1-s2))
-
-    d = (temp - h1)/r1
-
-    print(d)
+    # Then we calculate d
+    d = ((s1 * k - h1) * pow(r1, -1, order )) % order
     
     signing_key = SigningKey.from_secret_exponent(d, curve=curve, hashfunc=hashfunc)
     if signing_key.get_verifying_key().pubkey.verifies(h1, Signature(r1, s1)):
@@ -61,7 +59,7 @@ MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEAJ7Vt1EenCZAYUmIUEq08HBfVqwL
 
     # Print the recovered private key
     if private_key:
-        print("Private key is:\n{}".format(private_key.to_pem()))
+        print("Private key is:\n{}".format(private_key.to_pem()) )
         # Decimal version to be used with openssl
         print(int(private_key.privkey.secret_multiplier))
         with open("private-key.txt", "w") as f:

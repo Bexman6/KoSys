@@ -52,9 +52,25 @@ def get_hadamard_ratio(basis):
     '''Computes the hadamard ratio for a given basis.'''
     
     # TODO: get the ratio according to the formula in the exercise sheet
+    # We will split it in different parts
 
-    ratio = 0
-    print('Hadamard Ratio:\n', ratio)
+    # Calculating the determinant
+    det = abs(get_determinant(basis))
+
+    # Produce the norm of the basis vectors
+    normed_vec = [la.norm(np.array(vec)) for vec in basis]
+
+    # Calculate the product of the normed basis vecs
+    prod = np.product(normed_vec)
+
+    # Calculate the result in the inner bracket
+    temp = det/prod
+
+    # Calculate the last step
+    result = pow(temp,1/len(normed_vec))
+
+    # More closer to the one, the better 
+    print('Hadamard Ratio:\n', result)
 
 def lll_reduction():
     '''Compute LLL-reduced basis.'''
@@ -78,12 +94,39 @@ def main():
     
 
     '''examples'''
-    example_LLL   = 1
+    example_LLL   = 0
     example_LLL_short = 0
+    hadamard_only = 1
     
     global basis
     global orthobasis
     global DELTA
+
+    if hadamard_only:
+        # Basis a
+        bas_1 = np.array([[213, 312],[-437, 105]])
+
+        # Basis b
+        bas_2 = np.array([[2937,11223], [-1555, -5888]])
+
+        print("Hadamard ration of Basis 1: \n")
+        get_hadamard_ratio(bas_1)
+
+        # Calculate Basiswechselmatrix 
+        basis_wech_matrix = la.solve(bas_1,bas_2)
+        print("\nBasiswechselmatrix of base1 and base2:")
+        print(basis_wech_matrix)
+
+        # Calculate the determinant of the Basiswechselmatrix
+        print("\nDeterminat of Basiswechselmatrix:")
+        print(get_determinant(basis_wech_matrix))
+
+
+        print("\nHadamard ration of Basis 2:")
+        get_hadamard_ratio(bas_2)
+
+
+
 
     if example_LLL:
         ''' LLL input basis from "Hinweise zu den Implementierungsaufgaben"'''
