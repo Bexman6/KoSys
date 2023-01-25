@@ -1,0 +1,115 @@
+00000000000013d0 <encrypt_file>:
+    13d0:       41 55                   push   r13
+    13d2:       41 54                   push   r12
+    13d4:       55                      push   rbp
+    13d5:       53                      push   rbx
+    13d6:       48 83 ec 18             sub    rsp,0x18
+    13da:       64 48 8b 04 25 28 00    mov    rax,QWORD PTR fs:0x28
+    13e1:       00 00
+    13e3:       48 89 44 24 08          mov    QWORD PTR [rsp+0x8],rax
+    13e8:       31 c0                   xor    eax,eax
+    13ea:       85 d2                   test   edx,edx
+    13ec:       0f 85 d0 00 00 00       jne    14c2 <encrypt_file+0xf2>
+    13f2:       49 89 f4                mov    r12,rsi
+    13f5:       48 8d 35 08 0c 00 00    lea    rsi,[rip+0xc08]        # 2004 <dummy+0xa84>
+    13fc:       48 89 fd                mov    rbp,rdi
+    13ff:       89 d3                   mov    ebx,edx
+    1401:       e8 fa fc ff ff          call   1100 <strstr@plt>
+    1406:       48 85 c0                test   rax,rax
+    1409:       0f 84 d0 00 00 00       je     14df <encrypt_file+0x10f>
+    140f:       49 8b 44 24 30          mov    rax,QWORD PTR [r12+0x30]
+    1414:       48 89 ef                mov    rdi,rbp
+    1417:       48 8d 35 f0 0b 00 00    lea    rsi,[rip+0xbf0]        # 200e <dummy+0xa8e>
+    141e:       48 85 c0                test   rax,rax
+    1421:       4c 8d 60 07             lea    r12,[rax+0x7]
+    1425:       4c 0f 49 e0             cmovns r12,rax
+    1429:       e8 b2 fc ff ff          call   10e0 <fopen@plt>
+    142e:       49 c1 fc 03             sar    r12,0x3
+    1432:       48 89 c5                mov    rbp,rax
+    1435:       45 89 e5                mov    r13d,r12d
+    1438:       48 85 c0                test   rax,rax
+    143b:       0f 84 81 00 00 00       je     14c2 <encrypt_file+0xf2>
+    1441:       45 85 e4                test   r12d,r12d
+    1444:       7e 74                   jle    14ba <encrypt_file+0xea>
+    1446:       49 89 e4                mov    r12,rsp
+    1449:       eb 55                   jmp    14a0 <encrypt_file+0xd0>
+    144b:       0f 1f 44 00 00          nop    DWORD PTR [rax+rax*1+0x0]
+    1450:       f3 0f 7e 04 24          movq   xmm0,QWORD PTR [rsp]
+    1455:       ba 01 00 00 00          mov    edx,0x1
+    145a:       48 89 ef                mov    rdi,rbp
+    145d:       f3 0f 7e 0d b3 2b 00    movq   xmm1,QWORD PTR [rip+0x2bb3]        # 4018 <dummy+0x2a98>
+    1464:       00
+    1465:       48 c7 c6 f8 ff ff ff    mov    rsi,0xfffffffffffffff8
+    146c:       66 0f ef c1             pxor   xmm0,xmm1
+    1470:       66 0f d6 04 24          movq   QWORD PTR [rsp],xmm0
+    1475:       e8 56 fc ff ff          call   10d0 <fseek@plt>
+    147a:       85 c0                   test   eax,eax
+    147c:       75 3c                   jne    14ba <encrypt_file+0xea>
+    147e:       48 89 e9                mov    rcx,rbp
+    1481:       ba 08 00 00 00          mov    edx,0x8
+    1486:       be 01 00 00 00          mov    esi,0x1
+    148b:       4c 89 e7                mov    rdi,r12
+    148e:       e8 5d fc ff ff          call   10f0 <fwrite@plt>
+    1493:       48 85 c0                test   rax,rax
+    1496:       74 22                   je     14ba <encrypt_file+0xea>
+    1498:       83 c3 01                add    ebx,0x1
+    149b:       41 39 dd                cmp    r13d,ebx
+    149e:       74 1a                   je     14ba <encrypt_file+0xea>
+    14a0:       48 89 e9                mov    rcx,rbp
+    14a3:       ba 08 00 00 00          mov    edx,0x8
+    14a8:       be 01 00 00 00          mov    esi,0x1
+    14ad:       4c 89 e7                mov    rdi,r12
+    14b0:       e8 ab fb ff ff          call   1060 <fread@plt>
+    14b5:       48 85 c0                test   rax,rax
+    14b8:       75 96                   jne    1450 <encrypt_file+0x80>
+    14ba:       48 89 ef                mov    rdi,rbp
+    14bd:       e8 ae fb ff ff          call   1070 <fclose@plt>
+    14c2:       48 8b 44 24 08          mov    rax,QWORD PTR [rsp+0x8]
+    14c7:       64 48 2b 04 25 28 00    sub    rax,QWORD PTR fs:0x28
+    14ce:       00 00
+    14d0:       75 27                   jne    14f9 <encrypt_file+0x129>
+    14d2:       48 83 c4 18             add    rsp,0x18
+    14d6:       31 c0                   xor    eax,eax
+    14d8:       5b                      pop    rbx
+    14d9:       5d                      pop    rbp
+    14da:       41 5c                   pop    r12
+    14dc:       41 5d                   pop    r13
+    14de:       c3                      ret
+    14df:       48 8d 35 23 0b 00 00    lea    rsi,[rip+0xb23]        # 2009 <dummy+0xa89>
+    14e6:       48 89 ef                mov    rdi,rbp
+    14e9:       e8 12 fc ff ff          call   1100 <strstr@plt>
+    14ee:       48 85 c0                test   rax,rax
+    14f1:       0f 85 18 ff ff ff       jne    140f <encrypt_file+0x3f>
+    14f7:       eb c9                   jmp    14c2 <encrypt_file+0xf2>
+    14f9:       e8 92 fb ff ff          call   1090 <__stack_chk_fail@plt>
+    14fe:       66 90                   xchg   ax,ax
+    1500:       48 8d 15 12 2b 00 00    lea    rdx,[rip+0x2b12]        # 4019 <dummy+0x2a99>
+    1507:       48 89 f8                mov    rax,rdi
+    150a:       48 29 d0                sub    rax,rdx
+    150d:       48 83 f8 06             cmp    rax,0x6
+    1511:       76 1d                   jbe    1530 <encrypt_file+0x160>
+    1513:       f3 0f 7e 0d fd 2a 00    movq   xmm1,QWORD PTR [rip+0x2afd]        # 4018 <dummy+0x2a98>
+    151a:       00
+    151b:       f3 0f 7e 07             movq   xmm0,QWORD PTR [rdi]
+    151f:       66 0f ef c1             pxor   xmm0,xmm1
+    1523:       66 0f d6 07             movq   QWORD PTR [rdi],xmm0
+    1527:       c3                      ret
+    1528:       0f 1f 84 00 00 00 00    nop    DWORD PTR [rax+rax*1+0x0]
+    152f:       00
+    1530:       0f b6 05 e1 2a 00 00    movzx  eax,BYTE PTR [rip+0x2ae1]        # 4018 <dummy+0x2a98>
+    1537:       30 07                   xor    BYTE PTR [rdi],al
+    1539:       0f b6 05 d9 2a 00 00    movzx  eax,BYTE PTR [rip+0x2ad9]        # 4019 <dummy+0x2a99>
+    1540:       30 47 01                xor    BYTE PTR [rdi+0x1],al
+    1543:       0f b6 05 d0 2a 00 00    movzx  eax,BYTE PTR [rip+0x2ad0]        # 401a <dummy+0x2a9a>
+    154a:       30 47 02                xor    BYTE PTR [rdi+0x2],al
+    154d:       0f b6 05 c7 2a 00 00    movzx  eax,BYTE PTR [rip+0x2ac7]        # 401b <dummy+0x2a9b>
+    1554:       30 47 03                xor    BYTE PTR [rdi+0x3],al
+    1557:       0f b6 05 be 2a 00 00    movzx  eax,BYTE PTR [rip+0x2abe]        # 401c <dummy+0x2a9c>
+    155e:       30 47 04                xor    BYTE PTR [rdi+0x4],al
+    1561:       0f b6 05 b5 2a 00 00    movzx  eax,BYTE PTR [rip+0x2ab5]        # 401d <dummy+0x2a9d>
+    1568:       30 47 05                xor    BYTE PTR [rdi+0x5],al
+    156b:       0f b6 05 ac 2a 00 00    movzx  eax,BYTE PTR [rip+0x2aac]        # 401e <dummy+0x2a9e>
+    1572:       30 47 06                xor    BYTE PTR [rdi+0x6],al
+    1575:       0f b6 05 a3 2a 00 00    movzx  eax,BYTE PTR [rip+0x2aa3]        # 401f <dummy+0x2a9f>
+    157c:       30 47 07                xor    BYTE PTR [rdi+0x7],al
+    157f:       c3                      ret

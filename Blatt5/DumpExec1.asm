@@ -1,3 +1,4 @@
+
 ransomware:     file format elf64-x86-64
 
 
@@ -497,4 +498,4 @@ Disassembly of section .fini:
     15e4:       f3 0f 1e fa             endbr64
     15e8:       48 83 ec 08             sub    rsp,0x8
     15ec:       48 83 c4 08             add    rsp,0x8
-    15f0:       c3
+    15f0:       c3                      ret
