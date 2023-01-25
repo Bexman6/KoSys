@@ -1,16 +1,18 @@
 import numpy as np
 from numpy import linalg as la
+import copy
 
 '''LLL input basis used in the LLL example'''
-basis = np.array([[19,2,32,46,3,33],[15,42,11,0,3,24],[43,15,0,24,4,16],[20,44,44,0,18,15],[0,48,35,16,31,31],[48,33,32,9,1,29]]).astype(float)
+#basis = np.array([[19,2,32,46,3,33],[15,42,11,0,3,24],[43,15,0,24,4,16],[20,44,44,0,18,15],[0,48,35,16,31,31],[48,33,32,9,1,29]]).astype(float)
 '''LLL input basis used in the exercise'''
-#basis = np.array([[20,51,35,59,73,73],[14,48,33,61,47,83],[95,41,48,84,30,45],[0,42,74,79,20,21],[6,41,49,11,70,67],[23,36,6,1,46,4]]).astype(float)
+basis = np.array([[20,51,35,59,73,73],[14,48,33,61,47,83],[95,41,48,84,30,45],[0,42,74,79,20,21],[6,41,49,11,70,67],[23,36,6,1,46,4]]).astype(float)
 '''LLL orthogonalised basis'''
 orthobasis = basis.copy()
 
 
 '''LLL parameter delta'''
-DELTA = 0.75
+#DELTA = 0.75
+DELTA = 0.99
 
 def get_shortest_vector(basis):
     '''Gets the shortest vector out of a basis.'''
@@ -51,7 +53,6 @@ def print_step(steps, func, basis):
 def get_hadamard_ratio(basis):
     '''Computes the hadamard ratio for a given basis.'''
     
-    # TODO: get the ratio according to the formula in the exercise sheet
     # We will split it in different parts
 
     # Calculating the determinant
@@ -70,15 +71,46 @@ def get_hadamard_ratio(basis):
     result = pow(temp,1/len(normed_vec))
 
     # More closer to the one, the better 
-    print('Hadamard Ratio:\n', result)
+    print(result)
 
 def lll_reduction():
     '''Compute LLL-reduced basis.'''
 
+    # First we need to create the orthogonal basis through Gram-Schmidt
+    gram_schmidt()
+
+    # Run Variables to count the swaps and steps
     steps = 0
     swaps = 0
 
     # TODO: do LLL-reduction
+    
+    k = 1
+    # Get the amount of basisvectors
+    n = basis[0].size
+
+    # Not less equal here
+    while k < n:
+        
+        # Reduction step
+        for j in range(k-1, -1, -1):
+            basis[k] -= np.round(mu(orthobasis[j], basis[k])) * basis[j]
+
+        # Recreate the orthobasis
+        gram_schmidt()
+
+        # Check the Lovasz condition
+        if la.norm(orthobasis[k])**2 >= (DELTA - mu(orthobasis[k-1], basis[k])**2) * la.norm(orthobasis[k-1])**2:
+            k += 1
+        else:
+            swaps += 1
+            v = copy.copy(basis[k-1])
+            basis[k-1] = basis[k]
+            basis[k] = v
+            k = max(k-1, 1)
+
+        # Recreate the orthobasis another time
+        gram_schmidt()
 
     #print_step(steps, "some place", basis) ; steps += 1
 
@@ -90,13 +122,12 @@ def lll_reduction():
     get_shortest_vector(basis)
 
 def main():
-	#TODO: change according to the current exercise
-    
 
     '''examples'''
     example_LLL   = 0
     example_LLL_short = 0
-    hadamard_only = 1
+    hadamard_only = 0
+    exercise_LLL = 1
     
     global basis
     global orthobasis
@@ -109,10 +140,11 @@ def main():
         # Basis b
         bas_2 = np.array([[2937,11223], [-1555, -5888]])
 
-        print("Hadamard ration of Basis 1: \n")
+        # Calculate the hadamard ratio of basis 1
+        print("Hadamard ration of Basis 1:")
         get_hadamard_ratio(bas_1)
 
-        # Calculate Basiswechselmatrix 
+        # Calculate Basiswechselmatrix with the gauss algo
         basis_wech_matrix = la.solve(bas_1,bas_2)
         print("\nBasiswechselmatrix of base1 and base2:")
         print(basis_wech_matrix)
@@ -121,10 +153,28 @@ def main():
         print("\nDeterminat of Basiswechselmatrix:")
         print(get_determinant(basis_wech_matrix))
 
-
+    	# Calculate the hadamard ratio of basis 2
         print("\nHadamard ration of Basis 2:")
         get_hadamard_ratio(bas_2)
 
+    if exercise_LLL:
+
+        # For exercise 5.4 we have to reverse the order of the elements
+        basis = np.flipud(basis)
+
+        # As the other examples the orthobasis needs to be initialized
+        orthobasis = basis.copy()
+
+        # Calculate determinant and ratio
+        print('Determinant:\n', get_determinant(basis))
+        get_hadamard_ratio(basis)
+        get_shortest_vector(basis)
+        print('----------------------')
+        
+        lll_reduction()
+
+        print('----------------------')
+        #get_hadamard_ratio(basis)
 
 
 
