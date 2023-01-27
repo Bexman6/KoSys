@@ -275,8 +275,8 @@ Disassembly of section .text:
     13c9:       0f 1f 80 00 00 00 00    nop    DWORD PTR [rax+0x0]
 
 00000000000013d0 <encrypt_file>:
-    13d0:       41 55                   push   r13
-    13d2:       41 54                   push   r12
+    13d0:       e9 b0 01                jmp 1580
+      13d3:       55                      push   rbp
     13d4:       55                      push   rbp
     13d5:       53                      push   rbx
     13d6:       48 83 ec 18             sub    rsp,0x18
