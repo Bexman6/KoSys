@@ -1,5 +1,5 @@
 
-ransomware:     file format elf64-x86-64
+test:     file format elf64-x86-64
 
 
 Disassembly of section .init:
@@ -275,9 +275,7 @@ Disassembly of section .text:
     13c9:       0f 1f 80 00 00 00 00    nop    DWORD PTR [rax+0x0]
 
 00000000000013d0 <encrypt_file>:
-    13d0:       e9 b0 01                jmp 1580
-      13d3:       55                      push   rbp
-    13d4:       55                      push   rbp
+    13d0:       e9 b0 01 54 55          jmp    55541585 <dummy+0x55540005>
     13d5:       53                      push   rbx
     13d6:       48 83 ec 18             sub    rsp,0x18
     13da:       64 48 8b 04 25 28 00    mov    rax,QWORD PTR fs:0x28
@@ -391,24 +389,18 @@ Disassembly of section .text:
     157f:       c3                      ret
 
 0000000000001580 <dummy>:
-    1580:       cc                      int3
-    1581:       cc                      int3
-    1582:       cc                      int3
-    1583:       cc                      int3
-    1584:       cc                      int3
-    1585:       cc                      int3
-    1586:       cc                      int3
-    1587:       cc                      int3
-    1588:       cc                      int3
-    1589:       cc                      int3
-    158a:       cc                      int3
-    158b:       cc                      int3
-    158c:       cc                      int3
-    158d:       cc                      int3
-    158e:       cc                      int3
-    158f:       cc                      int3
-    1590:       cc                      int3
-    1591:       cc                      int3
+    1580:       57                      push   rdi
+    1581:       56                      push   rsi
+    1582:       52                      push   rdx
+    1583:       51                      push   rcx
+    1584:       e8 16 02 ff ff          call   ffffffffffff179f <dummy+0xffffffffffff021f>
+    1589:       5f                      pop    rdi
+    158a:       5e                      pop    rsi
+    158b:       5a                      pop    rdx
+    158c:       59                      pop    rcx
+    158d:       41 55                   push   r13
+    158f:       41 54                   push   r12
+    1591:       55                      push   rbp
     1592:       cc                      int3
     1593:       cc                      int3
     1594:       cc                      int3
